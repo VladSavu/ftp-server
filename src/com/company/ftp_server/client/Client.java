@@ -3,6 +3,8 @@ package com.company.ftp_server.client;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -50,7 +52,7 @@ public class Client {
         return hexString.toString();
     }
 
-    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
+    public static void main(String[] args) throws IOException {
         Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
 
         ServerConnection serverConnection = new ServerConnection(socket);
@@ -65,7 +67,8 @@ public class Client {
 
             if (command.contains("QUIT")) break;
 
-            if (command.contains("SEND_FILE")){
+//            Example: "SEND_FILE test.json"
+            if (command.startsWith("SEND_FILE")){
 //                Notify the server of an upcoming byte connection so it can start the second port
                 out.println("SEND_FILE");
 
@@ -73,16 +76,29 @@ public class Client {
 
                 String[] words = command.split(" ");
                 String fileName = words[1];
+                System.out.println("filename is " + fileName);
 //                String userNameReceiver = words[2];
 
 //                FileInputStream inputStream = new FileInputStream(fileName);
-                File file = new File(fileName);
-                byte[] fileContent = Files.readAllBytes(file.toPath());
+                Path path = Paths.get("D:/Java Projects/ftp-server/src/com/company/ftp_server/client", fileName);
+
+
+                byte[] fileContent = Files.readAllBytes(path);
+
+                System.out.println("File is " + path);
+                System.out.println("File parent is " + path.getParent());
 
                 DataOutputStream dataOutputStream = new DataOutputStream(client_data_socket.getOutputStream());
                 dataOutputStream.writeInt(fileContent.length);
                 dataOutputStream.write(fileContent);
+
+//                closing the connection for data transmission
+                client_data_socket.close();
 //                inputStream.read(b, 0, b.length);
+            }
+
+            if (!command.startsWith("SEND_FILE")){
+                out.println(command);
             }
 
 

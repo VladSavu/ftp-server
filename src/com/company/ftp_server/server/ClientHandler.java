@@ -96,49 +96,63 @@ public class ClientHandler implements Runnable{
 
         // Actually the receive file
     private void handleSEND_FILE(String request) {
+
         try {
             ServerSocket serverSocket = new ServerSocket(DATA_PORT);
             System.out.println("[SERVER] Waiting for Client DATA connection...");
             Socket client_socket = serverSocket.accept();
             System.out.println("[SERVER] Client data connection successful!");
+            DataInputStream dataInputStream = new DataInputStream(client_socket.getInputStream());
+
+            int lenght = dataInputStream.readInt();
+            byte[] message;
+            if (lenght > 0){
+                message = new byte[lenght];
+                dataInputStream.readFully(message);
+                FileOutputStream fos = new FileOutputStream("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/test.json");
+                fos.write(message);
+            }
+
+            serverSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
 
-        String[] words = request.split(" ");
-        String fileName = words[0];
-        String userNameReceiver = words[1];
-        String checksum = words[2];
-        String byteArray = words[3];
-        System.out.println("FILE STRING BYTE ARRAY = " + byteArray);
 
-        ClientHandler clientHandler = getClient(userNameReceiver);
-        if (clientHandler != null) {
-
-            byte[] b = Base64.getDecoder().decode(byteArray);
-
-            MessageDigest digest = null;
-            try {
-                digest = MessageDigest.getInstance("SHA-256");
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
-            byte[] encodedhash = digest.digest(b);
-            String hex = bytesToHex(encodedhash);
-
-            if (hex.equals(checksum)) {
-                try {
-                    FileOutputStream fileOutputStream = new FileOutputStream(fileName.split("\\.")[0] + "_output.txt");
-                    fileOutputStream.write(b, 0, b.length);
-                    out.println("201 Output file successfully created");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                out.println("400 Something went wrong");
-            }
-        }
+//        String[] words = request.split(" ");
+//        String fileName = words[0];
+//        String userNameReceiver = words[1];
+//        String checksum = words[2];
+//        String byteArray = words[3];
+//        System.out.println("FILE STRING BYTE ARRAY = " + byteArray);
+//
+//        ClientHandler clientHandler = getClient(userNameReceiver);
+//        if (clientHandler != null) {
+//
+//            byte[] b = Base64.getDecoder().decode(byteArray);
+//
+//            MessageDigest digest = null;
+//            try {
+//                digest = MessageDigest.getInstance("SHA-256");
+//            } catch (NoSuchAlgorithmException e) {
+//                e.printStackTrace();
+//            }
+//            byte[] encodedhash = digest.digest(b);
+//            String hex = bytesToHex(encodedhash);
+//
+//            if (hex.equals(checksum)) {
+//                try {
+//                    FileOutputStream fileOutputStream = new FileOutputStream(fileName.split("\\.")[0] + "_output.txt");
+//                    fileOutputStream.write(b, 0, b.length);
+//                    out.println("201 Output file successfully created");
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            } else {
+//                out.println("400 Something went wrong");
+//            }
+//        }
     }
     private void handlePM(String request) {
         int firstSpace = request.indexOf(" ");
