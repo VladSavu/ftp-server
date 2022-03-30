@@ -1,13 +1,12 @@
-package com.company.ftp_server;
+package com.company.ftp_server.server;
+
+import com.company.ftp_server.client.Client;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

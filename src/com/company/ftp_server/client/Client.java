@@ -1,4 +1,4 @@
-package com.company.ftp_server;
+package com.company.ftp_server.client;
 
 import java.io.*;
 import java.net.Socket;

@@ -1,4 +1,6 @@
-package com.company.ftp_server;
+package com.company.ftp_server.server;
+
+import com.company.ftp_server.client.Client;
 
 import java.io.*;
 import java.net.Socket;
@@ -50,10 +52,12 @@ public class ClientHandler implements Runnable{
                     if (checkLoggedIn()) handleLIST(getRequest(request));
                     else out.println("400 Please login first");
 
+//                    TODO: To be implemented
                 }else if(request.startsWith("RETR")) {
                     if (checkLoggedIn()) handleSEND_FILE(getRequest(request));
                     else out.println("400 Please login first");
 
+//                    TODO: To be implemented
                 }else if(request.startsWith("STOR")) {
                     if (checkLoggedIn()) handleSEND_FILE(getRequest(request));
                     else out.println("400 Please login first");
@@ -142,7 +146,7 @@ public class ClientHandler implements Runnable{
         }
     }
     private void handleQUIT(String request) {
-        out.println("200 Goodbye");
+        out.println("221 Service closing control connection");
     }
     private void handleCONN(String request){
         if(request.length() >= 1) {
