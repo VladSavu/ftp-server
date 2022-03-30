@@ -14,7 +14,7 @@ public class Server {
     private static ArrayList<Client> clients = new ArrayList<>();
     private ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
     private ArrayList<File> files = new ArrayList<>();
-    private final int PORT = 9090;
+    private final int PORT = 20;
     private final ExecutorService clientsPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     public static void main(String[] args) {
@@ -30,14 +30,14 @@ public class Server {
             clients.add(new Client("user3"));
             clients.add(new Client());
 
-            while (true) {
+//            while (true) {
                 System.out.println("[SERVER] Waiting for Client connection...");
                 Socket client = listener.accept();
                 System.out.println("[SERVER] Client connected successfully!");
                 ClientHandler clientThread = new ClientHandler(client, clientHandlers, files);
                 clientHandlers.add(clientThread);
                 clientsPool.execute(clientThread);
-            }
+//            }
         } catch (IOException e) {
             e.printStackTrace();
         }

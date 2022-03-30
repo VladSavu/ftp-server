@@ -2,6 +2,7 @@ package com.company.ftp_server.client;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -9,7 +10,8 @@ import java.util.Base64;
 public class Client {
 
     private static final String SERVER_ADDRESS = "127.0.0.1";
-    private static final int SERVER_PORT = 9090;
+    private static final int SERVER_PORT = 20;
+    private static final int SERVER_DATA_PORT = 21;
     private boolean loggedIn = false;
     private String userName = "Anonymous";
 
@@ -63,28 +65,27 @@ public class Client {
 
             if (command.contains("QUIT")) break;
 
-            if (command.startsWith("SEND_FILE")){
+            if (command.contains("SEND_FILE")){
+//                Notify the server of an upcoming byte connection so it can start the second port
+                out.println("SEND_FILE");
+
+                Socket client_data_socket = new Socket(SERVER_ADDRESS, SERVER_DATA_PORT);
+
                 String[] words = command.split(" ");
                 String fileName = words[1];
-                String userNameReceiver = words[2];
+//                String userNameReceiver = words[2];
 
-                FileInputStream inputStream = new FileInputStream(fileName);
+//                FileInputStream inputStream = new FileInputStream(fileName);
                 File file = new File(fileName);
-                long size = file.length();
-                byte[] b = new byte[(int) size];
-                inputStream.read(b, 0, b.length);
+                byte[] fileContent = Files.readAllBytes(file.toPath());
 
-                MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                byte[] encodedhash = digest.digest(b);
-                String hex = bytesToHex(encodedhash);
-
-                String s = Base64.getEncoder().encodeToString(b);
-
-                command = "SEND_FILE " + fileName + " " + userNameReceiver + " " + hex + " " + s;
-
+                DataOutputStream dataOutputStream = new DataOutputStream(client_data_socket.getOutputStream());
+                dataOutputStream.writeInt(fileContent.length);
+                dataOutputStream.write(fileContent);
+//                inputStream.read(b, 0, b.length);
             }
 
-            out.println(command);
+
         }
         socket.close();
         System.exit(0);

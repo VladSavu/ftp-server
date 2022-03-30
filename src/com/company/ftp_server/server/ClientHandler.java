@@ -3,6 +3,7 @@ package com.company.ftp_server.server;
 import com.company.ftp_server.client.Client;
 
 import java.io.*;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,6 +19,7 @@ public class ClientHandler implements Runnable{
     private ArrayList<ClientHandler> clients;
     private ArrayList<File> files;
     private Client thisClient;
+    private final int DATA_PORT = 21;
 
     public ClientHandler(Socket clientSocket, ArrayList<ClientHandler> clients, ArrayList<File> files) throws IOException {
         this.clients = clients;
@@ -92,7 +94,18 @@ public class ClientHandler implements Runnable{
         out.println(response);
     }
 
+        // Actually the receive file
     private void handleSEND_FILE(String request) {
+        try {
+            ServerSocket serverSocket = new ServerSocket(DATA_PORT);
+            System.out.println("[SERVER] Waiting for Client DATA connection...");
+            Socket client_socket = serverSocket.accept();
+            System.out.println("[SERVER] Client data connection successful!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
         String[] words = request.split(" ");
         String fileName = words[0];
         String userNameReceiver = words[1];
