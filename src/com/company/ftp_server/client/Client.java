@@ -53,14 +53,16 @@ public class Client {
     }
 
     public static void main(String[] args) throws IOException {
-        Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
 
-        ServerConnection serverConnection = new ServerConnection(socket);
         BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 
-        new Thread(serverConnection).start();
+//        Setup for the FTP command port
+        Socket command_socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+        ServerConnection command_serverConnection = new ServerConnection(command_socket);
+        PrintWriter command_out = new PrintWriter(command_socket.getOutputStream(), true);
+        new Thread(command_serverConnection).start();
 
+//        Continually listens for client connections on port 20
         while (true) {
             System.out.print("> ");
             String command = keyboard.readLine();
@@ -68,25 +70,23 @@ public class Client {
             if (command.contains("QUIT")) break;
 
 //            Example: "SEND_FILE test.json"
-            if (command.startsWith("SEND_FILE")){
+            else if (command.startsWith("SEND_FILE")){
 //                Notify the server of an upcoming byte connection so it can start the second port
-                out.println("SEND_FILE");
+                command_out.println(command);
 
+//                Sets up the connection on the data port
                 Socket client_data_socket = new Socket(SERVER_ADDRESS, SERVER_DATA_PORT);
 
                 String[] words = command.split(" ");
                 String fileName = words[1];
                 System.out.println("filename is " + fileName);
-//                String userNameReceiver = words[2];
 
-//                FileInputStream inputStream = new FileInputStream(fileName);
                 Path path = Paths.get("D:/Java Projects/ftp-server/src/com/company/ftp_server/client", fileName);
 
 
                 byte[] fileContent = Files.readAllBytes(path);
 
                 System.out.println("File is " + path);
-                System.out.println("File parent is " + path.getParent());
 
                 DataOutputStream dataOutputStream = new DataOutputStream(client_data_socket.getOutputStream());
                 dataOutputStream.writeInt(fileContent.length);
@@ -94,25 +94,43 @@ public class Client {
 
 //                closing the connection for data transmission
                 client_data_socket.close();
-//                inputStream.read(b, 0, b.length);
             }
 
-            if (!command.startsWith("SEND_FILE")){
-                out.println(command);
+//            Example: "RETR_FILE test.json"
+            else if (command.startsWith("RETR_FILE")){
+//                Notify the server of an upcoming byte connection so it can start the second port
+                command_out.println(command);
+                String[] words = command.split(" ");
+                String fileName = words[1];
+
+//                Sets up the connection on the data port
+                Socket client_data_socket = new Socket(SERVER_ADDRESS, SERVER_DATA_PORT);
+
+                DataInputStream dataInputStream = new DataInputStream(client_data_socket.getInputStream());
+
+                int lenght = dataInputStream.readInt();
+                byte[] message;
+                if (lenght > 0){
+                    message = new byte[lenght];
+                    dataInputStream.readFully(message);
+                    String fileLocation = "D:/Java Projects/ftp-server/src/com/company/ftp_server/client/" + fileName;
+                    FileOutputStream fos = new FileOutputStream(fileLocation);
+                    fos.write(message);
+                }
+                System.out.println("filename is " + fileName);
+
+//                closing the connection for data transmission
+                client_data_socket.close();
+            }
+
+            else{
+                command_out.println(command);
             }
 
 
         }
-        socket.close();
+        command_socket.close();
         System.exit(0);
-
-//        client.connectToServer();
-//        ReadFromServerThread readFromServerThread = new ReadFromServerThread(client.reader);
-//        Thread t = new Thread(readFromServerThread);
-//        t.start();
-//        if(client.connectToServer()){
-//            client.doStuff();
-//        }
     }
 
 

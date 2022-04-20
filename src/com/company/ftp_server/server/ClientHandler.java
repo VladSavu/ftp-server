@@ -5,6 +5,9 @@ import com.company.ftp_server.client.Client;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -50,13 +53,24 @@ public class ClientHandler implements Runnable{
                     if (checkLoggedIn()) handleSEND_FILE(getRequest(request));
                     else out.println("400 Please login first");
 
+                }else if(request.startsWith("PM")){
+                    if (checkLoggedIn()) handlePM(getRequest(request));
+                    else out.println("400 Please login first");
+
                 }else if(request.startsWith("LIST")) {
                     if (checkLoggedIn()) handleLIST(getRequest(request));
                     else out.println("400 Please login first");
 
-//                    TODO: To be implemented
-                }else if(request.startsWith("RETR")) {
-                    if (checkLoggedIn()) handleSEND_FILE(getRequest(request));
+                }else if(request.startsWith("RETR_FILE")) {
+                    if (checkLoggedIn()) handleRETR_FILE(getRequest(request));
+                    else out.println("400 Please login first");
+
+                }else if(request.startsWith("RENAME_FILE")) {
+                    if (checkLoggedIn()) handleRENAME_FILE(getRequest(request));
+                    else out.println("400 Please login first");
+
+                }else if(request.startsWith("DEL_FILE")) {
+                    if (checkLoggedIn()) handleDEL_FILE(getRequest(request));
                     else out.println("400 Please login first");
 
 //                    TODO: To be implemented
@@ -109,7 +123,8 @@ public class ClientHandler implements Runnable{
             if (lenght > 0){
                 message = new byte[lenght];
                 dataInputStream.readFully(message);
-                FileOutputStream fos = new FileOutputStream("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/test.json");
+                String fileLocation = "D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + request;
+                FileOutputStream fos = new FileOutputStream(fileLocation);
                 fos.write(message);
             }
 
@@ -117,43 +132,68 @@ public class ClientHandler implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-
-//        String[] words = request.split(" ");
-//        String fileName = words[0];
-//        String userNameReceiver = words[1];
-//        String checksum = words[2];
-//        String byteArray = words[3];
-//        System.out.println("FILE STRING BYTE ARRAY = " + byteArray);
-//
-//        ClientHandler clientHandler = getClient(userNameReceiver);
-//        if (clientHandler != null) {
-//
-//            byte[] b = Base64.getDecoder().decode(byteArray);
-//
-//            MessageDigest digest = null;
-//            try {
-//                digest = MessageDigest.getInstance("SHA-256");
-//            } catch (NoSuchAlgorithmException e) {
-//                e.printStackTrace();
-//            }
-//            byte[] encodedhash = digest.digest(b);
-//            String hex = bytesToHex(encodedhash);
-//
-//            if (hex.equals(checksum)) {
-//                try {
-//                    FileOutputStream fileOutputStream = new FileOutputStream(fileName.split("\\.")[0] + "_output.txt");
-//                    fileOutputStream.write(b, 0, b.length);
-//                    out.println("201 Output file successfully created");
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            } else {
-//                out.println("400 Something went wrong");
-//            }
-//        }
     }
+
+    private void handleDEL_FILE(String request) {
+
+            String fileName = request;
+            System.out.println("filename is " + fileName);
+
+            File file = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + fileName);
+            System.out.println("File is " + file.getAbsolutePath());
+
+            if (file.delete()) {
+                out.println("File deleted successfully");
+            } else {
+                out.println("Failed to delete file");
+            }
+    }
+
+    private void handleRENAME_FILE(String request) {
+
+        String[] words = request.split(" ");
+        String oldName = words[0];
+        String newName = words[1];
+
+        File oldFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + oldName);
+        File newFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + newName);
+        System.out.println("File is " + oldFile.getAbsolutePath());
+
+        if (oldFile.renameTo(newFile)) {
+            out.println("File renamed successfully");
+        } else {
+            out.println("Failed to rename file");
+        }
+    }
+
+    private void handleRETR_FILE(String request) {
+
+        try {
+            ServerSocket serverSocket = new ServerSocket(DATA_PORT);
+            System.out.println("[SERVER] Waiting for Client DATA connection...");
+            Socket client_socket = serverSocket.accept();
+            System.out.println("[SERVER] Client data connection successful!");
+            DataOutputStream dataOutputStream = new DataOutputStream(client_socket.getOutputStream());
+
+            String fileName = request;
+            System.out.println("filename is " + fileName);
+
+            Path path = Paths.get("D:/Java Projects/ftp-server/src/com/company/ftp_server/server", fileName);
+
+
+            byte[] fileContent = Files.readAllBytes(path);
+
+            System.out.println("File is " + path);
+
+            dataOutputStream.writeInt(fileContent.length);
+            dataOutputStream.write(fileContent);
+
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void handlePM(String request) {
         int firstSpace = request.indexOf(" ");
         String receiver = request.substring(0, firstSpace);
@@ -166,6 +206,7 @@ public class ClientHandler implements Runnable{
             out.println("404 User not found");
         }
     }
+
     private void handleUSERS() {
         out.println("200 The current user list is:");
         for (ClientHandler client : clients){
