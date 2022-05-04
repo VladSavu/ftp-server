@@ -16,6 +16,7 @@ public class Client {
     private static final int SERVER_DATA_PORT = 21;
     private boolean loggedIn = false;
     private String userName = "Anonymous";
+    private String password = "pass";
 
     private static Socket socket = null;
 
@@ -32,24 +33,23 @@ public class Client {
         return userName;
     }
 
-    public boolean login(String userName){
-        if(userName.equals(this.userName)){
-            loggedIn = true;
-            return true;
-        }
-        return false;
+    public void setUserNameAndPass(String username, String password){
+        this.userName = username;
+        this.password = password;
     }
 
-    private static String bytesToHex(byte[] hash) {
-        StringBuilder hexString = new StringBuilder(2 * hash.length);
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
-            if(hex.length() == 1) {
-                hexString.append('0');
+    public void setUserNameAndPass(String username){
+        this.userName = username;
+    }
+
+    public boolean login(String userName, String password){
+        if(userName.equals(this.userName)){
+            if(!this.password.equals("pass") && password.equals(this.password)){
+                loggedIn = true;
+                return true;
             }
-            hexString.append(hex);
         }
-        return hexString.toString();
+        return false;
     }
 
     public static void main(String[] args) throws IOException {
@@ -70,34 +70,34 @@ public class Client {
             if (command.contains("QUIT")) break;
 
 //            Example: "SEND_FILE test.json"
-            else if (command.startsWith("SEND_FILE")){
+            else if (command.startsWith("STOR")){
 //                Notify the server of an upcoming byte connection so it can start the second port
                 command_out.println(command);
 
 //                Sets up the connection on the data port
-                Socket client_data_socket = new Socket(SERVER_ADDRESS, SERVER_DATA_PORT);
+                Socket client_to_server_data_socket = new Socket(SERVER_ADDRESS, SERVER_DATA_PORT);
 
                 String[] words = command.split(" ");
                 String fileName = words[1];
                 System.out.println("filename is " + fileName);
 
-                Path path = Paths.get("D:/Java Projects/ftp-server/src/com/company/ftp_server/client", fileName);
+                Path path = Paths.get("D:/Java Projects/ftp-server/src/com/company/ftp_server/client/Files/", fileName);
 
 
                 byte[] fileContent = Files.readAllBytes(path);
 
                 System.out.println("File is " + path);
 
-                DataOutputStream dataOutputStream = new DataOutputStream(client_data_socket.getOutputStream());
+                DataOutputStream dataOutputStream = new DataOutputStream(client_to_server_data_socket.getOutputStream());
                 dataOutputStream.writeInt(fileContent.length);
                 dataOutputStream.write(fileContent);
 
 //                closing the connection for data transmission
-                client_data_socket.close();
+                client_to_server_data_socket.close();
             }
 
 //            Example: "RETR_FILE test.json"
-            else if (command.startsWith("RETR_FILE")){
+            else if (command.startsWith("RETR")){
 //                Notify the server of an upcoming byte connection so it can start the second port
                 command_out.println(command);
                 String[] words = command.split(" ");

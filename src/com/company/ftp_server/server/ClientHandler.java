@@ -8,11 +8,8 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 
 public class ClientHandler implements Runnable{
 
@@ -20,13 +17,12 @@ public class ClientHandler implements Runnable{
     private final BufferedReader in;
     private final PrintWriter out;
     private ArrayList<ClientHandler> clients;
-    private ArrayList<File> files;
+    private File files = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files");
     private Client thisClient;
     private final int DATA_PORT = 21;
 
     public ClientHandler(Socket clientSocket, ArrayList<ClientHandler> clients, ArrayList<File> files) throws IOException {
         this.clients = clients;
-        this.files = files;
         this.client = clientSocket;
         in = new BufferedReader(new InputStreamReader(client.getInputStream()));
         out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -35,7 +31,7 @@ public class ClientHandler implements Runnable{
     @Override
     public void run() {
         try {
-            out.println("INFO <welcome message>");
+            out.println("220 Service ready for new user");
 
             while (true){
                 String request = in.readLine();
@@ -49,8 +45,11 @@ public class ClientHandler implements Runnable{
                     if (checkLoggedIn()) handleUSERS();
                     else out.println("400 Please login first");
 
-                }else if(request.startsWith("SEND_FILE")) {
-                    if (checkLoggedIn()) handleSEND_FILE(getRequest(request));
+                }else if(request.equals("USER")) {
+                    handleUSER(request);
+
+                }else if(request.startsWith("STOR")) {
+                    if (checkLoggedIn()) handleSTOR(getRequest(request));
                     else out.println("400 Please login first");
 
                 }else if(request.startsWith("PM")){
@@ -61,21 +60,16 @@ public class ClientHandler implements Runnable{
                     if (checkLoggedIn()) handleLIST(getRequest(request));
                     else out.println("400 Please login first");
 
-                }else if(request.startsWith("RETR_FILE")) {
-                    if (checkLoggedIn()) handleRETR_FILE(getRequest(request));
+                }else if(request.startsWith("RETR")) {
+                    if (checkLoggedIn()) handleRETR(getRequest(request));
                     else out.println("400 Please login first");
 
-                }else if(request.startsWith("RENAME_FILE")) {
-                    if (checkLoggedIn()) handleRENAME_FILE(getRequest(request));
+                }else if(request.startsWith("RENAME")) {
+                    if (checkLoggedIn()) handleRENAME(getRequest(request));
                     else out.println("400 Please login first");
 
-                }else if(request.startsWith("DEL_FILE")) {
-                    if (checkLoggedIn()) handleDEL_FILE(getRequest(request));
-                    else out.println("400 Please login first");
-
-//                    TODO: To be implemented
-                }else if(request.startsWith("STOR")) {
-                    if (checkLoggedIn()) handleSEND_FILE(getRequest(request));
+                }else if(request.startsWith("DEL")) {
+                    if (checkLoggedIn()) handleDEL(getRequest(request));
                     else out.println("400 Please login first");
 
                 }else{
@@ -96,45 +90,56 @@ public class ClientHandler implements Runnable{
     }
 
     private void handleLIST(String request){
-        String response = "";
-        if (files.isEmpty()){
+
+        File[] filesArray = files.listFiles();
+
+        if(filesArray != null && filesArray.length > 0) {
+            String response = "";
+            for (File file : filesArray) {
+                response = response.concat(file.getName() + " | " + file.length() + '\n');
+            }
+            out.println("150 File status okay");
+            out.println(response);
+            out.println("226 Closing data connection. Requested file action successful");
+        }else{
             out.println("550 Requested action not taken. File unavailable.");
-            return;
         }
-        out.println("150 File status okay; about to open data connection.");
-        for (File file : files) {
-            response = response.concat(file.getName()+ " | " + file.length() + '\n');
-        }
-        out.println(response);
     }
 
         // Actually the receive file
-    private void handleSEND_FILE(String request) {
+    private void handleSTOR(String request) {
 
         try {
             ServerSocket serverSocket = new ServerSocket(DATA_PORT);
             System.out.println("[SERVER] Waiting for Client DATA connection...");
             Socket client_socket = serverSocket.accept();
-            System.out.println("[SERVER] Client data connection successful!");
+            if(client_socket.isConnected()){
+                out.println("200 Command okay");
+                out.println("[SERVER] Client data connection successful!");
+            }else{
+                out.println("425 Can't open data connection.");
+                return;
+            }
             DataInputStream dataInputStream = new DataInputStream(client_socket.getInputStream());
 
             int lenght = dataInputStream.readInt();
             byte[] message;
             if (lenght > 0){
+                File outputFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files/" + request);
                 message = new byte[lenght];
                 dataInputStream.readFully(message);
-                String fileLocation = "D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + request;
-                FileOutputStream fos = new FileOutputStream(fileLocation);
+                FileOutputStream fos = new FileOutputStream(outputFile);
                 fos.write(message);
             }
 
             serverSocket.close();
         } catch (IOException e) {
+            out.println("451 Requested action aborted: local error in processing.");
             e.printStackTrace();
         }
     }
 
-    private void handleDEL_FILE(String request) {
+    private void handleDEL(String request) {
 
             String fileName = request;
             System.out.println("filename is " + fileName);
@@ -149,14 +154,14 @@ public class ClientHandler implements Runnable{
             }
     }
 
-    private void handleRENAME_FILE(String request) {
+    private void handleRENAME(String request) {
 
         String[] words = request.split(" ");
         String oldName = words[0];
         String newName = words[1];
 
-        File oldFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + oldName);
-        File newFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + newName);
+        File oldFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files/" + oldName);
+        File newFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files/" + newName);
         System.out.println("File is " + oldFile.getAbsolutePath());
 
         if (oldFile.renameTo(newFile)) {
@@ -166,11 +171,11 @@ public class ClientHandler implements Runnable{
         }
     }
 
-    private void handleRETR_FILE(String request) {
+    private void handleRETR(String request) {
 
         try {
             ServerSocket serverSocket = new ServerSocket(DATA_PORT);
-            System.out.println("[SERVER] Waiting for Client DATA connection...");
+            out.println("150 File status okay; about to open data connection.");
             Socket client_socket = serverSocket.accept();
             System.out.println("[SERVER] Client data connection successful!");
             DataOutputStream dataOutputStream = new DataOutputStream(client_socket.getOutputStream());
@@ -178,7 +183,7 @@ public class ClientHandler implements Runnable{
             String fileName = request;
             System.out.println("filename is " + fileName);
 
-            Path path = Paths.get("D:/Java Projects/ftp-server/src/com/company/ftp_server/server", fileName);
+            Path path = Paths.get("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files", fileName);
 
 
             byte[] fileContent = Files.readAllBytes(path);
@@ -188,8 +193,10 @@ public class ClientHandler implements Runnable{
             dataOutputStream.writeInt(fileContent.length);
             dataOutputStream.write(fileContent);
 
+            out.println("226 Closing data connection. Requested file action successful");
             serverSocket.close();
         } catch (IOException e) {
+            out.println("550 Requested action not taken. File unavailable");
             e.printStackTrace();
         }
     }
@@ -217,15 +224,26 @@ public class ClientHandler implements Runnable{
         out.println("221 Service closing control connection");
     }
     private void handleCONN(String request){
+        String username = request.split(" ")[0];
+        String password = request.split(" ")[1];
         if(request.length() >= 1) {
             Client temp = Server.getClientByName(request);
             if (temp != null) {
                 if (!temp.getLoggedInStatus()) {
-                    if (temp.login(request)) {
-                        out.println("200 " + request + " : login successful");
-                        thisClient = temp;
-                    } else {
-                        out.println("CONN FAILURE");
+                    if(!password.equals("pass")){
+                        if (temp.login(username, password)) {
+                            out.println("200 " + request + " : login successful");
+                            thisClient = temp;
+                        } else {
+                            out.println("CONN FAILURE");
+                        }
+                    }else{
+                        if (temp.login(username, "pass")) {
+                            out.println("200 " + request + " : login successful");
+                            thisClient = temp;
+                        } else {
+                            out.println("CONN FAILURE");
+                        }
                     }
                 } else {
                     out.println("401 User already logged in");
@@ -237,25 +255,39 @@ public class ClientHandler implements Runnable{
             out.println("411 Length of request should be at least 1. Try inputting CONN <user_name>");
         }
     }
-    private void handleBCST(String request){
-        for(ClientHandler aClient : clients){
-            if (aClient.thisClient == this.thisClient) {
-                aClient.out.println("200 " + request);
-                aClient.out.println("Other clients receive the message as follows:");
+
+    private void handleUSER(String request){
+        String username = request.split(" ")[0];
+        String password = request.split(" ")[1];
+        if(request.length() >= 1) {
+            Client temp = Server.getClientByName(username);
+            if( temp != null ){
+                out.println("409 User already exists");
+            }else{
+                if(!password.equals("pass")){
+                    this.thisClient.setUserNameAndPass(username, password);
+                }else{
+                    this.thisClient.setUserNameAndPass(username);
+                }
             }
-            aClient.out.println("BCST " + thisClient.getUserName() + " " + request);
+        }else{
+            out.println("411 Length of request should be at least 1. Try inputting USER <user_name> [<password>]");
         }
     }
+
     private String getRequest(String request){
         int firstSpace = request.indexOf(" ");
         return request.substring(firstSpace + 1);
     }
+
     public String getPersonalClientUserName(){
         return thisClient.getUserName();
     }
+
     private boolean checkLoggedIn(){
         return (this.thisClient != null);
     }
+
     private ClientHandler getClient(String userName){
         for (ClientHandler aClient : clients){
             if (aClient.getPersonalClientUserName().equals(userName)){
@@ -264,16 +296,4 @@ public class ClientHandler implements Runnable{
         }
         return null;
     }
-    private static String bytesToHex(byte[] hash) {
-        StringBuilder hexString = new StringBuilder(2 * hash.length);
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
-            if(hex.length() == 1) {
-                hexString.append('0');
-            }
-            hexString.append(hex);
-        }
-        return hexString.toString();
-    }
-
 }

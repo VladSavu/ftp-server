@@ -31,12 +31,14 @@ public class Server {
             clients.add(new Client());
 
             while (true) {
-                System.out.println("[SERVER] Waiting for Client connection...");
-                Socket client = listener.accept();
-                System.out.println("[SERVER] Client connected successfully!");
-                ClientHandler clientThread = new ClientHandler(client, clientHandlers, files);
-                clientHandlers.add(clientThread);
-                clientsPool.execute(clientThread);
+                if(clientHandlers.size() <= 10) {
+                    System.out.println("[SERVER] Waiting for Client connection...");
+                    Socket client = listener.accept();
+                    System.out.println("[SERVER] Client connected successfully!");
+                    ClientHandler clientThread = new ClientHandler(client, clientHandlers, files);
+                    clientHandlers.add(clientThread);
+                    clientsPool.execute(clientThread);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
