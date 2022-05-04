@@ -44,7 +44,7 @@ public class Client {
 
     public boolean login(String userName, String password){
         if(userName.equals(this.userName)){
-            if(!this.password.equals("pass") && password.equals(this.password)){
+            if(password.equals(this.password)){
                 loggedIn = true;
                 return true;
             }

@@ -45,8 +45,8 @@ public class ClientHandler implements Runnable{
                     if (checkLoggedIn()) handleUSERS();
                     else out.println("400 Please login first");
 
-                }else if(request.equals("USER")) {
-                    handleUSER(request);
+                }else if(request.startsWith("USER")) {
+                    handleUSER(getRequest(request));
 
                 }else if(request.startsWith("STOR")) {
                     if (checkLoggedIn()) handleSTOR(getRequest(request));
@@ -57,7 +57,7 @@ public class ClientHandler implements Runnable{
                     else out.println("400 Please login first");
 
                 }else if(request.startsWith("LIST")) {
-                    if (checkLoggedIn()) handleLIST(getRequest(request));
+                    if (checkLoggedIn()) handleLIST();
                     else out.println("400 Please login first");
 
                 }else if(request.startsWith("RETR")) {
@@ -89,7 +89,7 @@ public class ClientHandler implements Runnable{
         }
     }
 
-    private void handleLIST(String request){
+    private void handleLIST(){
 
         File[] filesArray = files.listFiles();
 
@@ -225,7 +225,10 @@ public class ClientHandler implements Runnable{
     }
     private void handleCONN(String request){
         String username = request.split(" ")[0];
-        String password = request.split(" ")[1];
+        String password = "pass";
+        if (request.split(" ").length > 1) {
+            password = request.split(" ")[1];
+        }
         if(request.length() >= 1) {
             Client temp = Server.getClientByName(request);
             if (temp != null) {
@@ -264,10 +267,15 @@ public class ClientHandler implements Runnable{
             if( temp != null ){
                 out.println("409 User already exists");
             }else{
+
                 if(!password.equals("pass")){
+                    this.thisClient = new Client(username);
                     this.thisClient.setUserNameAndPass(username, password);
+                    out.println("200 User created successfully");
                 }else{
+                    this.thisClient = new Client(username);
                     this.thisClient.setUserNameAndPass(username);
+                    out.println("200 User created successfully");
                 }
             }
         }else{
