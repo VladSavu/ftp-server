@@ -126,6 +126,10 @@ public class ClientHandler implements Runnable{
             byte[] message;
             if (lenght > 0){
                 File outputFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files/" + request);
+                if(outputFile.exists()){
+                    out.println("File already exists in the system. Try renaming it.");
+                    return;
+                }
                 message = new byte[lenght];
                 dataInputStream.readFully(message);
                 FileOutputStream fos = new FileOutputStream(outputFile);
@@ -144,8 +148,13 @@ public class ClientHandler implements Runnable{
             String fileName = request;
             System.out.println("filename is " + fileName);
 
-            File file = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/" + fileName);
+            File file = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files/" + fileName);
             System.out.println("File is " + file.getAbsolutePath());
+
+            if(!file.exists()){
+                out.println("File does not exists on the server.");
+                return;
+            }
 
             if (file.delete()) {
                 out.println("File deleted successfully");
@@ -163,6 +172,11 @@ public class ClientHandler implements Runnable{
         File oldFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files/" + oldName);
         File newFile = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/server/Files/" + newName);
         System.out.println("File is " + oldFile.getAbsolutePath());
+
+        if(!oldFile.exists()){
+            out.println("File does not exists on the server.");
+            return;
+        }
 
         if (oldFile.renameTo(newFile)) {
             out.println("File renamed successfully");

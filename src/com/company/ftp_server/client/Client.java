@@ -113,7 +113,12 @@ public class Client {
                 if (lenght > 0){
                     message = new byte[lenght];
                     dataInputStream.readFully(message);
-                    String fileLocation = "D:/Java Projects/ftp-server/src/com/company/ftp_server/client/" + fileName;
+                    File fileLocation = new File("D:/Java Projects/ftp-server/src/com/company/ftp_server/client/Files/" + fileName);
+//                    String fileLocation = "D:/Java Projects/ftp-server/src/com/company/ftp_server/client/" + fileName;
+                    if(fileLocation.exists()){
+                        System.out.println("File already exists on your machine. Aborting process.");
+                        return;
+                    }
                     FileOutputStream fos = new FileOutputStream(fileLocation);
                     fos.write(message);
                 }
